@@ -1,0 +1,198 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="author" content="VigoJUG" /><title>Developer Vago 2: Microbenchmarking</title><meta content="yes" name="apple-mobile-web-app-capable" /><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style" /><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui" name="viewport" /><link href="reveal.js/css/reveal.css" rel="stylesheet" /><link rel="stylesheet" href="reveal.js/css/theme/summit.css" id="theme" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.3.0/css/font-awesome.min.css" /><link href="reveal.js/lib/css/zenburn.css" rel="stylesheet" /><script>document.write( '<link rel="stylesheet" href="reveal.js/css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );</script><link rel="stylesheet" type="text/css" href="reveal.js/css/theme/asciinema-player.css" />
+<link rel="stylesheet" type="text/css" href="reveal.js/css/theme/github-gist.css" />
+<script src="reveal.js/css/theme/asciinema-player.js"></script>
+<script src="reveal.js/css/theme/cytoscape.min.js"></script>
+<script src="https://cdn.rawgit.com/cpettitt/dagre/v0.7.4/dist/dagre.min.js"></script>
+<script src="https://cdn.rawgit.com/cytoscape/cytoscape.js-dagre/1.5.0/cytoscape-dagre.js"></script>
+<script src="reveal.js/css/theme/dependency-graph.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.min.css" rel="stylesheet" type="text/css"/> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.4/d3.min.js" charset="utf-8"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.min.js"></script>
+
+</head><body><div class="reveal"><div class="slides"><section class="title" data-state="title" data-transition="zoom" data-transition-speed="fast" data-background-image="./images/title.jpeg"><h1>Developer Vago 2</h1><h2>Microbenchmarking</h2><p class="author"><small>VigoJUG</small></p></section><section id="axenda"><h2>Axenda</h2><div class="ulist"><ul><li><p><em>(19:30)</em> VigoJUG e VigoTech</p></li><li><p>Developer Vago</p></li><li><p>Motivación Benchmarking</p></li><li><p>JMH</p></li><li><p>Exemplos</p></li><li><p><em>(20:30)</em> Charlas lostrego e debate</p></li><li><p><em>(21:00)</em> Kahoot</p></li><li><p><em>(21:30)</em> Refrescos</p></li></ul></div></section>
+<section id="vigojug"><h2>VigoJUG</h2><div class="ulist"><ul><li><p>Un meetup <strong>o primeiro martes de cada mes</strong></p></li><li><p>¿Te animas cunha charla?. Licencias de JetBrains ;-)</p></li><li><p>Outras iniciativas: obradoiro virtual #VigoJUG-taller</p></li><li><p>Canal de slack <strong>#VigoJUG</strong> en <a href="http://www.vigotech.org" class="bare">http://www.vigotech.org</a></p></li></ul></div>
+<div class="imageblock" style=""><img src="./images/sponsors.jpg" alt="sponsors" width="800" height="200" /></div></section>
+<section id="vigotech-alliance"><div class="imageblock" style=""><img src="./images/vigotech.jpg" alt="vigotech" width="1280" height="600px" /></div></section>
+<section id="developer-vago"><h2>Developer Vago</h2><div class="ulist"><ul><li><p>Charla sobre <strong>unha temática xeral</strong> preparada polo VigoJUG</p></li><li><p>De utilidade <strong>para todo o mundo</strong>, independentemente da tua experiencia</p></li><li><p>Facelo <strong>ameno</strong>, non estamos para teorías cuánticas ;-)</p></li><li><p>Rematar con <strong>charlas lóstrego</strong> e/ou <strong>debates abertos</strong></p></li></ul></div></section>
+<section id="non-sexades-tmidos-participar"><h2>Non sexades tímidos: ¡¡participar!!</h2><div class="imageblock" style=""><img src="./images/baby.gif" alt="baby" width="200" height="300" /></div>
+<div class="paragraph"><p>Source: <a href="http://gif.co/vc7E.gif" class="bare">http://gif.co/vc7E.gif</a></p></div></section>
+<section id="java--lento"><h2>Java é lento</h2><div class="imageblock" style=""><img src="./images/javaslow.jpg" alt="Java Slow" width="1280" height="720" /></div></section>
+<section><section id="qu--microbenchmarking" data-background-color="#01303a"><h2>¿Qué é microbenchmarking?</h2></section><section id="-mellor-a-ou-b"><h2>¿É mellor A ou B?</h2><div class="ulist"><ul><li><p>Saber cal é o método/algoritmo mais eficiente</p></li><li><p>A maior parte das veces, non fai falta</p></li><li><p><code>premature optimization is the root of all evil (or at least most of it) in programming</code></p></li></ul></div></section><section id="cal-tarda-en-executarse-mis"><h2>¿Cal tarda en executarse máis?</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">    void a() {
+        for (long i = 0; i &lt; 1_000_000_000l; i++) {
+            Object o = new Object();
+        }
+    }
+
+    void b() {
+        for (long i = 0; i &lt; 1_000_000_001l; i++) {
+            Object o = new Object();
+        }
+    }</code></pre></div></div></section><section id="mtodo-tradicional"><h2>Método "tradicional"</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">public class org.vigojug.developervago2.NoSense {
+
+    public static void main(String[] args) {
+
+        long startTime = System.currentTimeMillis();
+
+		a();
+
+        long stopTime = System.currentTimeMillis();
+        long elapsedTime = stopTime - startTime;
+
+        System.out.println("Time: " + elapsedTime);
+    }
+}</code></pre></div></div></section><section id="que-pode-sair-mal"><h2>¿Que pode sair mal?</h2><div class="ulist"><ul><li><p>A JVM vai mellorando cada vez que o executa: ¡aprende!. Interpretado (JIT) &#8594; compilado</p></li><li><p>As execucións anteriores afectan</p></li><li><p>Se o código non se usa, pode non executalo</p></li><li><p>Pode saltar un GC ou outros eventos na JVM durante a execución</p></li></ul></div></section></section>
+<section><section id="java-microbenchmark-harness-jmh" data-background-color="#01303a"><h2>Java Microbenchmark Harness (JMH)</h2></section><section id="exemplo"><h2>Exemplo</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">     @Benchmark
+     // Don't use this in a real benchmark
+     @Warmup(iterations = 1)
+     @Measurement(iterations = 1)
+     public void benchmarkA() {
+         NoSense.a();
+     }
+
+     @Benchmark
+     // Don't use this in a real benchmark
+     @Warmup(iterations = 1)
+     @Measurement(iterations = 1)
+     public void benchmarkB() {
+         NoSense.b();
+     }</code></pre></div></div></section><section id="inicio"><h2>Inicio</h2><div class="listingblock"><div class="content"><pre class="highlight"><code># JMH 1.13 (released 562 days ago, please consider updating!)
+# VM version: JDK 1.8.0_141, VM 25.141-b15
+# VM invoker: /home/antonmry/.sdkman/candidates/java/8u141-oracle/jre/bin/java
+# VM options: &lt;none&gt;
+# Warmup: 1 iterations, 1 s each
+# Measurement: 1 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: org.vigojug.developervago2.NoSenseBenchmark.benchmarkB</code></pre></div></div></section><section id="resultado"><h2>Resultado</h2><div class="listingblock"><div class="content"><pre class="highlight"><code># Run complete. Total time: 00:00:50
+Benchmark                     Mode  Cnt  Score   Error  Units
+NoSenseBenchmark.benchmarkA  thrpt   10  2.669 ± 0.295  ops/s
+NoSenseBenchmark.benchmarkB  thrpt   10  2.650 ± 0.272  ops/s</code></pre></div></div></section></section>
+<section><section id="jmh-instalacin-e-uso" data-background-color="#01303a"><h2>JMH: instalación e uso</h2></section><section id="maven"><h2>Maven</h2><div class="listingblock"><div class="content"><pre class="highlight"><code>$
+$ cd test/
+$ mvn clean package
+$ java -jar target/benchmarks.jar</code></pre></div></div></section><section id="gradle"><h2>Gradle</h2><div class="listingblock"><div class="content"><pre class="highlight"><code>$ gradle jmh</code></pre></div></div></section><section id="intellij-idea"><h2>IntelliJ Idea</h2><div class="ulist"><ul><li><p>Plugin: <a href="https://plugins.jetbrains.com/plugin/7529-jmh-plugin" class="bare">https://plugins.jetbrains.com/plugin/7529-jmh-plugin</a></p></li></ul></div></section><section id="ms-info"><h2>Más info</h2><div class="ulist"><ul><li><p>Páxina oficial: <a href="http://openjdk.java.net/projects/code-tools/jmh/" class="bare">http://openjdk.java.net/projects/code-tools/jmh/</a></p></li><li><p>Tutorial: <a href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/" class="bare">http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/</a></p></li></ul></div></section></section>
+<section><section id="microbenchmarks-unha-boa-idea" data-background-color="#01303a"><h2>Microbenchmarks: unha boa idea?</h2></section><section id="moi-complexos"><h2>Moi complexos</h2><div class="ulist"><ul><li><p>Deben utilizar o resultado</p></li><li><p>A rendemento pode depender dos parámetros de entrada: fibonacci(1) vs. fibonacci(1000). Deben parecerse o máis posible a realidade.</p></li><li><p>Pouca granularidade: non son 100% precisos</p></li></ul></div></section><section id="causas"><h2>Causas</h2><div class="paragraph"><p>A maioría dos problemas son debidos a:</p></div>
+<div class="ulist"><ul><li><p>Problemas humanos</p></li><li><p>Configuración incorrecta</p></li><li><p>Algoritmos</p></li></ul></div></section><section id="opcins"><h2>Opcións?</h2><div class="ulist"><ul><li><p>Automatización</p></li><li><p>Probas E2E: simular o input real</p></li><li><p>Profiling e Peer Review</p></li></ul></div></section></section>
+<section><section id="logs" data-background-color="#01303a"><h2>Logs</h2></section><section id="exemplo-2"><h2>Exemplo</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">log.log(Level.FINE, "I am here, and the value of X is "
+	+ calcX() + " and Y is " + calcY());</code></pre></div></div></section><section id="problemas"><h2>Problemas</h2><div class="ulist"><ul><li><p>Chamadas a métodos (costosos?) sen motivo</p></li><li><p>Concatenación de caracteres</p></li><li><p>Mensaxe pouco descriptivo</p></li></ul></div></section><section id="mellora"><h2>Mellora</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">if (log.isLoggable(Level.FINE)) {
+	log.log(Level.FINE,
+	"Business entity created with X: {} and Y: {}",
+	new Object[]{calcX(), calcY()});
+}</code></pre></div></div></section></section>
+<section><section id="concatenacin-strings" data-background-color="#01303a"><h2>Concatenación strings</h2></section><section id="exemplo-1"><h2>Exemplo 1</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">public String stringAppendLoop() {
+    String s = "";
+    for (int i = 0;i &lt; 10_000;i++) {
+        if (s.length() &gt; 0) s += ", ";
+        s += "bar";
+    }
+    return s;
+}</code></pre></div></div></section><section id="problemas-2"><h2>Problemas</h2><div class="ulist"><ul><li><p>O String é invariable</p></li><li><p>Generar un nuevo objecto cada vez</p></li><li><p>Coste en copia de memoria y GC</p></li><li><p>Especialmente en bucles!</p></li></ul></div></section><section id="exemplo-2-2"><h2>Exemplo 2</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">public String stringAppend() {
+    String s = "foo";
+    s += ", bar";
+    s += ", baz";
+    s += ", qux";
+    s += ", bar";
+    s += ", bar";
+    return s;
+}</code></pre></div></div></section><section id="mellora-1"><h2>Mellora 1</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">public String stringAppendBuilderLoop() {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0;i &lt; 10_000;i++) {
+        if (sb.length() &gt; 0) sb.append(", ");
+        sb.append("bar");
+    }
+    return sb.toString();
+}</code></pre></div></div></section><section id="mellora-2-pero-ollo-as-optimizacins-da-jvm"><h2>Mellora 2 (pero ollo as optimizacións da JVM)</h2><div class="listingblock"><div class="content"><pre class="highlight"><code class="java language-java">public String stringAppendBuilder() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("foo");
+    sb.append(", bar");
+    sb.append(", bar");
+    sb.append(", baz");
+    sb.append(", qux");
+    return sb.toString();</code></pre></div></div></section><section id="nota"><h2>Nota</h2><div class="paragraph"><p>Case sempre, usa StringBuilder no lugar de StringBuffer (salvo concurrencia) e inicializa o array o valor aproximado (se podes).</p></div></section></section>
+<section><section id="garbage-collector"><h2>Garbage Collector</h2></section><section id="mis-heap-mis-problemas"><h2>Máis Heap, máis problemas</h2><div class="paragraph"><p>As veces, sí</p></div></section><section id="fino-fino-filipino"><h2>Fino, fino, filipino</h2><div class="listingblock"><div class="content"><pre class="highlight"><code>-verbose:gc (print the GC logs)
+-Xloggc: (for more comprehensive GC logging)
+-XX:+PrintGCDetails (for more detailed output)
+-XX:+PrintTenuringDistribution (displays the tenuring thresholds assumed by the JVM)</code></pre></div></div></section></section>
+<section id="lightning-talks" data-background-color="#01303a"><h2>Lightning talks?</h2></section>
+<section><section id="debate-aberto" data-background-color="#01303a"><h2>Debate aberto</h2></section><section id="microbenchmarks"><h2>¿Microbenchmarks?</h2><div class="ulist"><ul><li><p>Xa os usaba.</p></li><li><p>Non os coñecía pero vou probar.</p></li><li><p>Non me fan falta, paso.</p></li></ul></div></section><section id="profiling"><h2>¿Profiling?</h2><div class="paragraph"><p>¿Usades algún?</p></div></section><section id="automatizar-as-probas-de-carga"><h2>¿Automatizar as probas de carga?</h2></section><section id="algo-mais"><h2>¿Algo mais?</h2></section></section>
+<section id="kahoot" data-background-color="#01303a"><h2>Kahoot</h2></section>
+<section id="meetup-marzo-2018"><h2>Meetup Marzo 2018</h2><div class="ulist"><ul><li><p>Non temos charla e non hai quen poida facer o Developer Vago</p></li><li><p>HashCode 2018: pendentes de local pero farase algo</p></li></ul></div></section>
+<section id="dbidas"><h2>¿Dúbidas?</h2><div class="ulist"><ul><li><p>Slides: <a href="https://github.com/vigojug/developer-vago-2-micro-benchmarking" class="bare">https://github.com/vigojug/developer-vago-2-micro-benchmarking</a></p></li><li><p>Código: <a href="http://www.vigojug.org/developer-vago-2-micro-benchmarking/" class="bare">http://www.vigojug.org/developer-vago-2-micro-benchmarking/</a></p></li><li><p>Slack: canal #vigojug en <a href="http://www.vigotech.org" class="bare">http://www.vigotech.org</a></p></li></ul></div></section></div></div><script src="reveal.js/lib/js/head.min.js"></script><script src="reveal.js/js/reveal.js"></script><script>// See https://github.com/hakimel/reveal.js#configuration for a full list of configuration options
+Reveal.initialize({
+  // Display controls in the bottom right corner
+  controls: true,
+  // Display a presentation progress bar
+  progress: true,
+  // Display the page number of the current slide
+  slideNumber: true,
+  // Push each slide change to the browser history
+  history: true,
+  // Enable keyboard shortcuts for navigation
+  keyboard: true,
+  // Enable the slide overview mode
+  overview: true,
+  // Vertical centering of slides
+  center: true,
+  // Enables touch navigation on devices with touch input
+  touch: true,
+  // Loop the presentation
+  loop: false,
+  // Change the presentation direction to be RTL
+  rtl: false,
+  // Turns fragments on and off globally
+  fragments: true,
+  // Flags if the presentation is running in an embedded mode,
+  // i.e. contained within a limited portion of the screen
+  embedded: false,
+  // Number of milliseconds between automatically proceeding to the
+  // next slide, disabled when set to 0, this value can be overwritten
+  // by using a data-autoslide attribute on your slides
+  autoSlide: 0,
+  // Stop auto-sliding after user input
+  autoSlideStoppable: true,
+  // Enable slide navigation via mouse wheel
+  mouseWheel: false,
+  // Hides the address bar on mobile devices
+  hideAddressBar: true,
+  // Opens links in an iframe preview overlay
+  previewLinks: false,
+  // Theme (e.g., beige, black, league, night, serif, simple, sky, solarized, white)
+  // NOTE setting the theme in the config no longer works in reveal.js 3.x
+  //theme: Reveal.getQueryHash().theme || 'summit',
+  // Transition style (e.g., none, fade, slide, convex, concave, zoom)
+  transition: Reveal.getQueryHash().transition || 'linear',
+  // Transition speed (e.g., default, fast, slow)
+  transitionSpeed: 'default',
+  // Transition style for full page slide backgrounds (e.g., none, fade, slide, convex, concave, zoom)
+  backgroundTransition: 'fade',
+  // Number of slides away from the current that are visible
+  viewDistance: 3,
+  // Parallax background image (e.g., "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'")
+  parallaxBackgroundImage: '',
+  // Parallax background size in CSS syntax (e.g., "2100px 900px")
+  parallaxBackgroundSize: '',
+
+  // The "normal" size of the presentation, aspect ratio will be preserved
+  // when the presentation is scaled to fit different resolutions. Can be
+  // specified using percentage units.
+  width: 960,
+  height: 700,
+
+  // Factor of the display size that should remain empty around the content
+  margin: 0.1,
+
+  // Bounds for smallest/largest possible scale to apply to content
+  minScale: 0.2,
+  maxScale: 1.5,
+
+  // Optional libraries used to extend on reveal.js
+  dependencies: [
+      { src: 'reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+      { src: 'reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+      { src: 'reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+      { src: 'reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+  ]
+});</script></body></html>
