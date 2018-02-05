@@ -19,6 +19,7 @@ buildscript {
 
 plugins {
     id 'com.github.jruby-gradle.base' version '1.4.0'
+    id "me.champeau.gradle.jmh" version "0.4.5"
 }
 
 repositories {
@@ -28,50 +29,18 @@ repositories {
 apply plugin: 'com.github.jruby-gradle.base'
 apply plugin: 'org.ysb33r.vfs'
 apply plugin: 'java'
-// Spock
-apply plugin: "groovy"
-apply plugin: "jacoco"
-// JUnit5 Gradle Plugin
-//apply plugin: 'org.junit.platform.gradle.plugin'
 apply plugin: 'org.asciidoctor.convert'
 apply plugin: 'org.kordamp.gradle.livereload'
+apply plugin: 'me.champeau.gradle.jmh'
+
+jmh {
+    include = 'org\\.vigojug\\.developervago2\\.NoSenseBenchmark.*'
+    humanOutputFile = null
+}
 
 dependencies {
     gems 'rubygems:slim:3.0.8'
     gems 'rubygems:thread_safe:0.3.5'
-}
-
-ext.junit4Version = '4.12'
-ext.junitVintageVersion = '4.12.2'
-ext.junitPlatformVersion = '1.0.2'
-ext.junitJupiterVersion = '5.0.2'
-
-dependencies {
-    // JUnit Jupiter API and TestEngine implementation
-    // Typically it should be testCompile or testRuntime)
-    compile("org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}")
-    runtime("org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}")
-    compile("org.junit.jupiter:junit-jupiter-params:${junitJupiterVersion}")
-
-    // If you also want to support JUnit 3 and JUnit 4 tests
-    // Typically it should be testCompile or testRuntime)
-    compile("junit:junit:${junit4Version}")
-    runtime("org.junit.vintage:junit-vintage-engine:${junitVintageVersion}")
-
-    // To avoid compiler warnings about @API annotations in JUnit code
-    compileOnly('org.apiguardian:apiguardian-api:1.0.0')
-
-    // Spock Framework
-    compile "org.codehaus.groovy:groovy-all:2.4.10"
-    testCompile "org.spockframework:spock-core:1.1-groovy-2.4"
-
-    // Spock Reports
-    testCompile('com.athaydes:spock-reports:1.4.0') {
-        transitive = false // this avoids affecting your version of Groovy/Spock
-    }
-    // if you don't already have slf4j-api and an implementation of it in the classpath, add this!
-    testCompile 'org.slf4j:slf4j-api:1.7.13'
-    testCompile 'org.slf4j:slf4j-simple:1.7.13'
 }
 
 ext {
@@ -132,20 +101,4 @@ allprojects {
 liveReload {
     docRoot = "$buildDir/asciidoc/revealjs"
 }
-
-// Spock Reports
-test {
-    systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', true
-}
-
-jacocoTestReport {
-    reports {
-        xml.enabled false
-        csv.enabled false
-        html.destination file("${buildDir}/jacoco-reports")
-    }
-}
-
-test.finalizedBy 'jacocoTestReport'
-
 
