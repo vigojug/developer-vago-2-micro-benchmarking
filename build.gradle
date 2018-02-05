@@ -11,8 +11,6 @@ buildscript {
         classpath 'org.ajoberstar:gradle-git:1.1.0'
         classpath 'io.ratpack:ratpack-groovy:1.2.0'
         classpath 'org.kordamp.gradle:livereload-gradle-plugin:0.2.1'
-        // JUnit5 Gradle Plugin
-        // classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.1'
     }
 
 }

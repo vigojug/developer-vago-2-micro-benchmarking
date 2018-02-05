@@ -53,7 +53,7 @@ Source: http://gif.co/vc7E.gif
 
 == Java é lento
 
-image::javaslow.jpg[Java Slow]
+image::javaslow.jpg[javaslow, 599, 586]
 
 [background-color="#01303a"]
 == ¿Qué é microbenchmarking?
@@ -166,7 +166,13 @@ NoSenseBenchmark.benchmarkB  thrpt   10  2.650 ± 0.272  ops/s
 
 [source]
 ----
-$
+$ mvn archetype:generate \
+            -DinteractiveMode=false \
+            -DarchetypeGroupId=org.openjdk.jmh \
+            -DarchetypeArtifactId=jmh-java-benchmark-archetype \
+            -DgroupId=org.sample \
+            -DartifactId=test \
+            -Dversion=1.0
 $ cd test/
 $ mvn clean package
 $ java -jar target/benchmarks.jar
@@ -194,7 +200,7 @@ $ gradle jmh
 === Moi complexos
 
 - Deben utilizar o resultado
-- A rendemento pode depender dos parámetros de entrada: fibonacci(1) vs. fibonacci(1000). Deben parecerse o máis posible a realidade.
+- O rendemento pode depender dos parámetros de entrada: fibonacci(1) vs. fibonacci(1000). Deben parecerse o máis posible a realidade.
 - Pouca granularidade: non son 100% precisos
 
 === Causas
@@ -311,11 +317,17 @@ public String stringAppendBuilder() {
 
 Case sempre, usa StringBuilder no lugar de StringBuffer (salvo concurrencia) e inicializa o array o valor aproximado (se podes).
 
+[background-color="#01303a"]
 == Garbage Collector
 
 === Máis Heap, máis problemas
 
 As veces, sí
+
+=== GC: estructura
+
+image::jvm.png[jvm, 600, 200]
+
 
 === Fino, fino, filipino
 
@@ -326,6 +338,15 @@ As veces, sí
 -XX:+PrintGCDetails (for more detailed output)
 -XX:+PrintTenuringDistribution (displays the tenuring thresholds assumed by the JVM)
 ----
+
+=== Pódese probar con JMH
+
+image::javagc.svg[height=600px]
+
+=== Fonte
+
+- Java Memory Model: https://www.journaldev.com/2856/java-jvm-memory-model-memory-management-in-java
+- Blog Shipilev: https://shipilev.net/jvm-anatomy-park/3-gc-design-and-pauses/
 
 [background-color="#01303a"]
 == Lightning talks?
